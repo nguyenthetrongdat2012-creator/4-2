@@ -1,0 +1,741 @@
+--// DATBEO SCRIPT - FULL FINAL (MENU SÁNG 🥶) - TÍCH HỢP ĐẦY ĐỦ
+local Players    = game:GetService("Players")
+local CoreGui    = game:GetService("CoreGui")
+local Tween      = game:GetService("TweenService")
+local VIM        = game:GetService("VirtualInputManager")
+local Sound      = game:GetService("SoundService")
+local UIS        = game:GetService("UserInputService")
+local P          = Players.LocalPlayer
+
+if CoreGui:FindFirstChild("DatBeoGui") then CoreGui.DatBeoGui:Destroy() end
+
+local S = Instance.new("ScreenGui")
+S.Name = "DatBeoGui"
+S.ResetOnSpawn = false
+S.Parent = CoreGui
+
+local C = {
+    bg = Color3.fromRGB(15,15,20), bg2 = Color3.fromRGB(25,25,35),
+    gold = Color3.fromRGB(255,200,60), cyan = Color3.fromRGB(0,220,255),
+    grn = Color3.fromRGB(0,255,130), red = Color3.fromRGB(255,60,80),
+    purple = Color3.fromRGB(180, 100, 255),
+    dim = Color3.fromRGB(130,130,145),
+}
+
+local STEALTH = { Enabled = true, RandomDelay = true, AntiAFK = true }
+
+local function rndDelay(base, variance)
+    if not STEALTH.Enabled or not STEALTH.RandomDelay then return task.wait(base) end
+    local v = variance or base * 0.4
+    local final = base + (math.random() * 2 - 1) * v
+    if final < 0.05 then final = 0.05 end
+    return task.wait(final)
+end
+
+if STEALTH.AntiAFK then
+    task.spawn(function()
+        while task.wait(45 + math.random() * 30) do
+            pcall(function()
+                VIM:SendKeyEvent(true, Enum.KeyCode.LeftShift, false, game)
+                task.wait(0.05)
+                VIM:SendKeyEvent(false, Enum.KeyCode.LeftShift, false, game)
+            end)
+        end
+    end)
+end
+
+local function corner(p,r) local c=Instance.new("UICorner",p); c.CornerRadius=UDim.new(0,r or 8) end
+local function stroke(p,c,t,tr) local s=Instance.new("UIStroke",p); s.Color=c or C.gold; s.Thickness=t or 1.5; s.Transparency=tr or 0.3; return s end
+local function grad(p,c1,c2,r) local g=Instance.new("UIGradient",p); g.Color=ColorSequence.new(c1,c2); g.Rotation=r or 90 end
+
+_G.MenuLocked = false
+
+local function drag(f)
+    local d,ds,sp
+    f.InputBegan:Connect(function(i)
+        if _G.MenuLocked then return end
+        if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+            d=true; ds=i.Position; sp=f.Position
+            i.Changed:Connect(function() if i.UserInputState==Enum.UserInputState.End then d=false end end)
+        end
+    end)
+    f.InputChanged:Connect(function(i)
+        if _G.MenuLocked then return end
+        if d and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
+            local x=i.Position-ds
+            f.Position=UDim2.new(sp.X.Scale,sp.X.Offset+x.X,sp.Y.Scale,sp.Y.Offset+x.Y)
+        end
+    end)
+end
+
+local function btn(parent,size,pos,text)
+    local b=Instance.new("TextButton",parent)
+    b.Size=size; b.Position=pos
+    b.BackgroundColor3=Color3.fromRGB(80, 85, 110)
+    b.BackgroundTransparency = 0.1
+    b.TextColor3=Color3.fromRGB(255, 255, 255)
+    b.TextSize=12; b.Font=Enum.Font.GothamBold; b.Text=text
+    b.BorderSizePixel=0; b.AutoButtonColor=false
+    b.ZIndex = 10
+    b.TextStrokeTransparency = 0
+    b.TextStrokeColor3 = Color3.fromRGB(0,0,0)
+    corner(b,6)
+    b.MouseEnter:Connect(function() Tween:Create(b,TweenInfo.new(0.15),{BackgroundColor3=Color3.fromRGB(120, 130, 160)}):Play() end)
+    b.MouseLeave:Connect(function() Tween:Create(b,TweenInfo.new(0.15),{BackgroundColor3=Color3.fromRGB(80, 85, 110)}):Play() end)
+    return b
+end
+
+local Islands = {
+    [1] = {name = "🏝️ Đảo 1", pos = Vector3.new(-41.90, 11.09, 303740)},
+    [2] = {name = "🌴 Đảo 2", pos = Vector3.new(-1166.36, 10.68, -66.31)},
+    [3] = {name = "🏜️ Đảo 3", pos = Vector3.new(-51.02, 10.13, -954.41)},
+    [4] = {name = "❄️ Đảo 4", pos = Vector3.new(1095.07, 9.38, -284.33)},
+    [5] = {name = "🌋 Đảo 5", pos = Vector3.new(1807.50, 9.17, 1073.44)},
+}
+
+-- ================= HÀM NÉM CẦN & CLICK (BẢN CŨ ĐÃ TÍCH HỢP) =================
+local function Click(hold)
+    hold = hold or 0.05
+    pcall(function() mouse1press() task.wait(hold) mouse1release() end)
+    pcall(function()
+        local vp = workspace.CurrentCamera.ViewportSize
+        VIM:SendMouseButtonEvent(vp.X/2, vp.Y/2, 0, true, game, 0)
+        task.wait(hold)
+        VIM:SendMouseButtonEvent(vp.X/2, vp.Y/2, 0, false, game, 0)
+    end)
+end
+
+local function K(key, delay)
+    delay = delay or 0
+    pcall(function() keypress(key) keyrelease(key) end)
+    pcall(function()
+        VIM:SendKeyEvent(true, key, false, game)
+        VIM:SendKeyEvent(false, key, false, game)
+    end)
+    if delay > 0 then rndDelay(delay, delay*0.3) end
+end
+
+local function showToast(text, color)
+    local toast = Instance.new("TextLabel", S)
+    toast.Size = UDim2.new(0, 240, 0, 36)
+    toast.Position = UDim2.new(0.5, -120, 0.15, 0)
+    toast.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    toast.BackgroundTransparency = 0.2
+    toast.TextColor3 = color or C.grn
+    toast.TextSize = 13
+    toast.Font = Enum.Font.GothamBold
+    toast.Text = text
+    toast.BorderSizePixel = 0
+    toast.ZIndex = 200
+    corner(toast, 8)
+    stroke(toast, color or C.grn, 2)
+    toast.TextTransparency = 1
+    toast.BackgroundTransparency = 1
+    Tween:Create(toast, TweenInfo.new(0.2), {TextTransparency = 0, BackgroundTransparency = 0.2}):Play()
+    Tween:Create(toast, TweenInfo.new(1.5), {Position = UDim2.new(0.5, -120, 0.1, 0)}):Play()
+    task.wait(1.8)
+    Tween:Create(toast, TweenInfo.new(0.4), {TextTransparency = 1, BackgroundTransparency = 1}):Play()
+    task.wait(0.4)
+    toast:Destroy()
+end
+
+local function getFish()
+    local count = 0
+    local function check(container)
+        if container then
+            for _, item in ipairs(container:GetChildren()) do
+                if item:IsA("Tool") then
+                    local name = string.lower(item.Name)
+                    if not (name:find("rod") or name:find("cần") or name:find("bait")
+                        or name:find("mồi") or name:find("potion") or name:find("thuốc")
+                        or name:find("license") or name:find("gps") or name:find("radar")
+                        or name:find("pass")) then
+                        count = count + 1
+                    end
+                end
+            end
+        end
+    end
+    check(P.Backpack)
+    check(P.Character)
+    return count
+end
+
+local function clickBtn(keys)
+    local inset = game:GetService("GuiService"):GetGuiInset()
+    for _, obj in pairs(P.PlayerGui:GetDescendants()) do
+        if (obj:IsA("TextButton") or obj:IsA("TextLabel")) and obj.Visible then
+            local txt = string.lower(obj.Text or "")
+            for _, kw in ipairs(keys) do
+                if txt:find(kw) then
+                    local pos, sz = obj.AbsolutePosition, obj.AbsoluteSize
+                    local cx, cy = pos.X + sz.X/2 + inset.X, pos.Y + sz.Y/2 + inset.Y
+                    VIM:SendMouseButtonEvent(cx, cy, 0, true, game, 1)
+                    task.wait(0.05)
+                    VIM:SendMouseButtonEvent(cx, cy, 0, false, game, 1)
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
+-- ================= HUD CÁ =================
+local FishHUD = Instance.new("Frame", S)
+FishHUD.Size = UDim2.new(0, 200, 0, 55)
+FishHUD.Position = UDim2.new(0, 15, 0, 15)
+FishHUD.BackgroundColor3 = Color3.fromRGB(15, 18, 28)
+FishHUD.BackgroundTransparency = 0.15
+FishHUD.BorderSizePixel = 0
+FishHUD.ZIndex = 100
+corner(FishHUD, 12)
+local FStroke = stroke(FishHUD, C.cyan, 2, 0.2)
+drag(FishHUD)
+
+local FishIcon = Instance.new("TextLabel", FishHUD)
+FishIcon.Size = UDim2.new(0, 45, 1, 0)
+FishIcon.Position = UDim2.new(0, 5, 0, 0)
+FishIcon.BackgroundTransparency = 1
+FishIcon.TextColor3 = C.cyan
+FishIcon.TextSize = 28
+FishIcon.Font = Enum.Font.GothamBold
+FishIcon.Text = "🐟"
+FishIcon.ZIndex = 101
+
+local FishText = Instance.new("TextLabel", FishHUD)
+FishText.Size = UDim2.new(1, -55, 0, 28)
+FishText.Position = UDim2.new(0, 50, 0, 5)
+FishText.BackgroundTransparency = 1
+FishText.TextColor3 = C.grn
+FishText.TextSize = 18
+FishText.Font = Enum.Font.GothamBold
+FishText.Text = "0 / 50"
+FishText.TextXAlignment = Enum.TextXAlignment.Left
+FishText.ZIndex = 101
+
+local FishSub = Instance.new("TextLabel", FishHUD)
+FishSub.Size = UDim2.new(1, -55, 0, 14)
+FishSub.Position = UDim2.new(0, 50, 1, -18)
+FishSub.BackgroundTransparency = 1
+FishSub.TextColor3 = C.dim
+FishSub.TextSize = 10
+FishSub.Font = Enum.Font.Gotham
+FishSub.Text = "KHO CÁ"
+FishSub.TextXAlignment = Enum.TextXAlignment.Left
+FishSub.ZIndex = 101
+
+local function updateFishHUD()
+    local current = getFish()
+    local target = _G.SellTarget or 50
+    FishText.Text = current .. " / " .. target
+    if current >= target then
+        FishText.TextColor3 = C.gold
+        FStroke.Color = C.gold
+    elseif current >= target * 0.7 then
+        FishText.TextColor3 = C.cyan
+        FStroke.Color = C.cyan
+    else
+        FishText.TextColor3 = C.grn
+        FStroke.Color = C.cyan
+    end
+end
+
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        pcall(updateFishHUD)
+    end
+end)
+
+-- ================= GUI CHÍNH =================
+local Main = Instance.new("Frame", S)
+Main.Size = UDim2.new(0, 460, 0, 380)
+Main.Position = UDim2.new(0.5, -230, 0.5, -190)
+Main.BackgroundColor3 = Color3.fromRGB(200, 120, 255)
+Main.BackgroundTransparency = 0
+Main.BorderSizePixel = 0
+Main.Visible = false
+corner(Main, 14)
+local MS = stroke(Main, C.cyan, 2, 0.2)
+drag(Main)
+
+task.spawn(function()
+    local colors = {
+        Color3.fromRGB(200, 120, 255),
+        Color3.fromRGB(120, 180, 255),
+        Color3.fromRGB(80, 255, 220),
+        Color3.fromRGB(255, 130, 180),
+        Color3.fromRGB(255, 200, 100),
+        Color3.fromRGB(200, 120, 255),
+    }
+    while Main and Main.Parent do
+        for i = 1, #colors - 1 do
+            if not Main.Parent then break end
+            local tween = Tween:Create(Main, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+                BackgroundColor3 = colors[i + 1]
+            })
+            tween:Play()
+            tween.Completed:Wait()
+        end
+    end
+end)
+
+local Head = Instance.new("Frame", Main)
+Head.Size = UDim2.new(1, 0, 0, 38)
+Head.BackgroundColor3 = C.bg2
+Head.BackgroundTransparency = 0.3
+Head.BorderSizePixel = 0
+Head.ZIndex = 5
+corner(Head, 14)
+grad(Head, Color3.fromRGB(255, 220, 100), Color3.fromRGB(255, 150, 50))
+
+local Title = Instance.new("TextLabel", Head)
+Title.Size = UDim2.new(1, 0, 1, 0)
+Title.BackgroundTransparency = 1
+Title.TextColor3 = Color3.fromRGB(0, 0, 0)
+Title.TextSize = 16
+Title.Font = Enum.Font.GothamBold
+Title.Text = "⚡ DATBEO SCRIPT ⚡"
+Title.ZIndex = 6
+
+local BtnLockMenu = Instance.new("TextButton", Head)
+BtnLockMenu.Size = UDim2.new(0, 22, 0, 22)
+BtnLockMenu.Position = UDim2.new(1, -78, 0, 8)
+BtnLockMenu.BackgroundColor3 = Color3.fromRGB(100, 110, 140)
+BtnLockMenu.TextColor3 = C.grn
+BtnLockMenu.TextSize = 12
+BtnLockMenu.Font = Enum.Font.GothamBold
+BtnLockMenu.Text = "🔓"
+BtnLockMenu.BorderSizePixel = 0
+BtnLockMenu.ZIndex = 10
+corner(BtnLockMenu, 4)
+
+local Close = Instance.new("TextButton", Head)
+Close.Size = UDim2.new(0, 22, 0, 22)
+Close.Position = UDim2.new(1, -30, 0, 8)
+Close.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
+Close.TextColor3 = Color3.fromRGB(255, 255, 255)
+Close.TextSize = 13
+Close.Font = Enum.Font.GothamBold
+Close.Text = "✕"
+Close.BorderSizePixel = 0
+Close.ZIndex = 10
+corner(Close, 4)
+
+local Sidebar = Instance.new("Frame", Main)
+Sidebar.Size = UDim2.new(0, 85, 1, -50)
+Sidebar.Position = UDim2.new(0, 8, 0, 44)
+Sidebar.BackgroundTransparency = 1
+Sidebar.ZIndex = 5
+
+local function sidebarBtn(pos, text, color)
+    local b = Instance.new("TextButton", Sidebar)
+    b.Size = UDim2.new(1, 0, 0, 38)
+    b.Position = UDim2.new(0, 0, 0, pos)
+    b.BackgroundColor3 = Color3.fromRGB(70, 75, 100)
+    b.BackgroundTransparency = 0.15
+    b.TextColor3 = color
+    b.TextSize = 12
+    b.Font = Enum.Font.GothamBold
+    b.Text = text
+    b.BorderSizePixel = 0
+    b.ZIndex = 10
+    b.TextStrokeTransparency = 0
+    b.TextStrokeColor3 = Color3.fromRGB(0,0,0)
+    corner(b, 8)
+    return b
+end
+
+local BtnTabFarm = sidebarBtn(0, "🌾 FARM", C.grn)
+local BtnTabSell = sidebarBtn(42, "💰 SELL", C.dim)
+local BtnTabTele = sidebarBtn(84, "🌊 TELE", C.dim)
+local BtnTabMusic = sidebarBtn(126, "🎵 NHẠC", C.dim)
+
+local ContentX = 100
+local ContentW = 352
+
+-- ================= FARM =================
+local FarmFrame = Instance.new("Frame", Main)
+FarmFrame.Size = UDim2.new(0, ContentW, 1, -55)
+FarmFrame.Position = UDim2.new(0, ContentX, 0, 48)
+FarmFrame.BackgroundTransparency = 1
+FarmFrame.Visible = true
+FarmFrame.ZIndex = 5
+
+local BtnAuto = btn(FarmFrame, UDim2.new(1, 0, 0, 34), UDim2.new(0, 0, 0, 0), "🎣 AUTO CÂU: OFF")
+BtnAuto.TextColor3 = C.grn
+BtnAuto.TextSize = 13
+
+local BtnSkill = btn(FarmFrame, UDim2.new(0.49, -2, 0, 30), UDim2.new(0, 0, 0, 40), "⚔️ SKILL: OFF")
+BtnSkill.TextColor3 = C.grn
+
+local BtnMini = btn(FarmFrame, UDim2.new(0.49, -2, 0, 30), UDim2.new(0.51, 2, 0, 40), "🎮 MINI: OFF")
+BtnMini.TextColor3 = C.grn
+
+local BtnLock = btn(FarmFrame, UDim2.new(0.49, -2, 0, 30), UDim2.new(0, 0, 0, 76), "🔒 KHÓA: OFF")
+BtnLock.TextColor3 = C.grn
+
+local BtnUnlock = btn(FarmFrame, UDim2.new(0.49, -2, 0, 30), UDim2.new(0.51, 2, 0, 76), "🔓 MỞ KHÓA")
+BtnUnlock.TextColor3 = C.gold
+
+local BtnStealth = btn(FarmFrame, UDim2.new(1, 0, 0, 30), UDim2.new(0, 0, 0, 112), "🛡️ STEALTH: ON")
+BtnStealth.TextColor3 = C.grn
+
+-- ================= SELL =================
+local SellFrame = Instance.new("Frame", Main)
+SellFrame.Size = UDim2.new(0, ContentW, 1, -55)
+SellFrame.Position = UDim2.new(0, ContentX, 0, 48)
+SellFrame.BackgroundTransparency = 1
+SellFrame.Visible = false
+SellFrame.ZIndex = 5
+
+local BtnSell = btn(SellFrame, UDim2.new(0.49, -2, 0, 34), UDim2.new(0, 0, 0, 0), "💰 SELL + VỀ")
+BtnSell.TextColor3 = C.gold
+BtnSell.TextSize = 12
+
+local BtnSellMax = btn(SellFrame, UDim2.new(0.49, -2, 0, 34), UDim2.new(0.51, 2, 0, 0), "🔥 SELL MAX")
+BtnSellMax.TextColor3 = C.red
+BtnSellMax.TextSize = 12
+
+local BtnAutoSell = btn(SellFrame, UDim2.new(1, 0, 0, 32), UDim2.new(0, 0, 0, 40), "💰 AUTO SELL: OFF")
+BtnAutoSell.TextColor3 = C.gold
+
+-- ================= TELE =================
+local TeleFrame = Instance.new("Frame", Main)
+TeleFrame.Size = UDim2.new(0, ContentW, 1, -55)
+TeleFrame.Position = UDim2.new(0, ContentX, 0, 48)
+TeleFrame.BackgroundTransparency = 1
+TeleFrame.Visible = false
+TeleFrame.ZIndex = 5
+
+local IslandLabel = Instance.new("TextLabel", TeleFrame)
+IslandLabel.Size = UDim2.new(1, 0, 0, 18)
+IslandLabel.Position = UDim2.new(0, 0, 0, 20)
+IslandLabel.BackgroundTransparency = 1
+IslandLabel.TextColor3 = C.dim
+IslandLabel.TextSize = 11
+IslandLabel.Font = Enum.Font.GothamBold
+IslandLabel.Text = "Chọn đảo cần đến:"
+IslandLabel.TextXAlignment = Enum.TextXAlignment.Left
+IslandLabel.ZIndex = 10
+
+local IslandButtons = {}
+for i = 1, 5 do
+    local b = btn(TeleFrame, UDim2.new(1, 0, 0, 32), UDim2.new(0, 0, 0, 45 + (i-1)*38), Islands[i].name)
+    b.TextColor3 = Color3.fromRGB(255, 255, 255)
+    b.TextSize = 11
+    IslandButtons[i] = b
+    b.MouseButton1Click:Connect(function()
+        for j, b2 in pairs(IslandButtons) do
+            if j == i then
+                b2.BackgroundColor3 = Color3.fromRGB(200, 170, 60)
+                b2.TextColor3 = Color3.fromRGB(0, 0, 0)
+            else
+                b2.BackgroundColor3 = Color3.fromRGB(80, 85, 110)
+                b2.TextColor3 = Color3.fromRGB(255, 255, 255)
+            end
+        end
+    end)
+end
+
+-- ================= MUSIC =================
+local MusicFrame = Instance.new("Frame", Main)
+MusicFrame.Size = UDim2.new(0, ContentW, 1, -55)
+MusicFrame.Position = UDim2.new(0, ContentX, 0, 48)
+MusicFrame.BackgroundTransparency = 1
+MusicFrame.Visible = false
+MusicFrame.ZIndex = 5
+
+local NowPlaying = Instance.new("TextLabel", MusicFrame)
+NowPlaying.Size = UDim2.new(1, 0, 0, 26)
+NowPlaying.Position = UDim2.new(0, 0, 0, 0)
+NowPlaying.BackgroundColor3 = Color3.fromRGB(60, 70, 100)
+NowPlaying.BackgroundTransparency = 0.15
+NowPlaying.TextColor3 = C.gold
+NowPlaying.TextSize = 11
+NowPlaying.Font = Enum.Font.GothamBold
+NowPlaying.Text = "♪ Loading..."
+NowPlaying.TextTruncate = Enum.TextTruncate.AtEnd
+NowPlaying.ZIndex = 10
+corner(NowPlaying, 6)
+_G.MusicNowPlaying = NowPlaying
+
+local SearchBox = Instance.new("TextBox", MusicFrame)
+SearchBox.Size = UDim2.new(1, 0, 0, 28)
+SearchBox.Position = UDim2.new(0, 0, 0, 30)
+SearchBox.BackgroundColor3 = Color3.fromRGB(80, 85, 110)
+SearchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+SearchBox.PlaceholderText = "🔍 Tìm bài..."
+SearchBox.PlaceholderColor3 = Color3.fromRGB(180, 180, 200)
+SearchBox.Text = ""
+SearchBox.TextSize = 11
+SearchBox.Font = Enum.Font.Gotham
+SearchBox.ClearTextOnFocus = false
+SearchBox.BorderSizePixel = 0
+SearchBox.ZIndex = 10
+corner(SearchBox, 6)
+
+local MScroll = Instance.new("ScrollingFrame", MusicFrame)
+MScroll.Size = UDim2.new(1, 0, 1, -150)
+MScroll.Position = UDim2.new(0, 0, 0, 64)
+MScroll.BackgroundColor3 = Color3.fromRGB(50, 55, 80)
+MScroll.BorderSizePixel = 0
+MScroll.ScrollBarThickness = 6
+MScroll.ScrollBarImageColor3 = C.cyan
+MScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+MScroll.ZIndex = 10
+corner(MScroll, 8)
+
+local MList = Instance.new("UIListLayout", MScroll)
+MList.Padding = UDim.new(0, 3)
+MList.SortOrder = Enum.SortOrder.LayoutOrder
+
+local MControl = Instance.new("Frame", MusicFrame)
+MControl.Size = UDim2.new(1, 0, 0, 34)
+MControl.Position = UDim2.new(0, 0, 1, -36)
+MControl.BackgroundTransparency = 1
+MControl.ZIndex = 10
+
+local BtnMPrev = btn(MControl, UDim2.new(0.32, -3, 1, 0), UDim2.new(0, 0, 0, 0), "◀")
+BtnMPrev.TextColor3 = C.cyan
+BtnMPrev.TextSize = 15
+
+local BtnMPlay = btn(MControl, UDim2.new(0.32, -3, 1, 0), UDim2.new(0.34, 0, 0, 0), "▶ PHÁT")
+BtnMPlay.TextColor3 = C.grn
+BtnMPlay.TextSize = 11
+
+local BtnMNext = btn(MControl, UDim2.new(0.32, -3, 1, 0), UDim2.new(0.68, 0, 0, 0), "▶")
+BtnMNext.TextColor3 = C.cyan
+BtnMNext.TextSize = 15
+
+local Status = Instance.new("TextLabel", Main)
+Status.Size = UDim2.new(1, -20, 0, 18)
+Status.Position = UDim2.new(0, 10, 1, -22)
+Status.BackgroundTransparency = 1
+Status.TextColor3 = Color3.fromRGB(255, 255, 255)
+Status.TextSize = 11
+Status.Font = Enum.Font.GothamBold
+Status.Text = "● Sẵn sàng"
+Status.TextXAlignment = Enum.TextXAlignment.Left
+Status.ZIndex = 10
+Status.TextStrokeTransparency = 0
+Status.TextStrokeColor3 = Color3.fromRGB(0,0,0)
+
+local ToggleBtn = Instance.new("TextButton", S)
+ToggleBtn.Size = UDim2.new(0, 50, 0, 50)
+ToggleBtn.Position = UDim2.new(0, 20, 0.5, -25)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(100, 110, 140)
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.TextSize = 28
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.Text = "🥶"
+ToggleBtn.BorderSizePixel = 0
+ToggleBtn.Visible = false
+ToggleBtn.ZIndex = 100
+corner(ToggleBtn, 25)
+stroke(ToggleBtn, C.gold, 2)
+drag(ToggleBtn)
+
+-- ================= BIẾN TRẠNG THÁI =================
+_G.AutoFish = false; _G.AutoSkill = false; _G.AutoMini = false
+_G.LockPos = false; _G.AnchorPos = nil
+_G.ForceUnlock = false; _G.AutoSell = false
+_G.SellTarget = 50
+
+-- ================= PLAYLIST =================
+local Playlist = {
+    {name = "Sơn Thủy Trùng Mây", id = "805101300149129"},
+    {name = "Vũ Trụ Có Anh", id = "9555946575863"},
+    {name = "Phép Màu Tình Yêu", id = "99072612944031"},
+    {name = "Quan Sơn Tửu", id = "95280153572320"},
+    {name = "Xích Linh Mix v2", id = "114524646066441"},
+}
+local CurrentSong = 1
+
+local BGM = Instance.new("Sound")
+BGM.Name = "DatBeoBGM"
+BGM.Looped = false
+BGM.Volume = 0.5
+BGM.Parent = Sound
+
+local function LoadSong(index)
+    if index > #Playlist then index = 1 end
+    if index < 1 then index = #Playlist end
+    CurrentSong = index
+    BGM.SoundId = "rbxassetid://" .. Playlist[index].id
+    pcall(function() BGM:Play() end)
+    if _G.MusicNowPlaying then
+        _G.MusicNowPlaying.Text = "♪ " .. Playlist[index].name
+    end
+end
+
+local function NextSong() LoadSong(CurrentSong + 1) end
+local function PrevSong() LoadSong(CurrentSong - 1) end
+BGM.Ended:Connect(NextSong)
+LoadSong(1)
+
+-- ================= LOGIC AUTO CÂU =================
+local function SaveAnchor()
+    local c = P.Character
+    if c and c:FindFirstChild("HumanoidRootPart") then
+        _G.AnchorPos = c.HumanoidRootPart.Position
+        _G.LockPos = true
+    end
+end
+
+task.spawn(function()
+    while true do
+        task.wait(0.2)
+        if not _G.ForceUnlock and _G.LockPos and _G.AnchorPos then
+            local c = P.Character
+            if c and c:FindFirstChild("HumanoidRootPart") then
+                if (c.HumanoidRootPart.Position - _G.AnchorPos).Magnitude > 3 then
+                    c.HumanoidRootPart.CFrame = CFrame.new(_G.AnchorPos)
+                end
+            end
+        end
+    end
+end)
+
+task.spawn(function()
+    while true do
+        task.wait(0.05)
+        if _G.AutoSkill or _G.AutoFish then
+            K(Enum.KeyCode.Z, 0.01)
+            K(Enum.KeyCode.X, 0.01)
+            K(Enum.KeyCode.C, 0.01)
+            K(Enum.KeyCode.V, 0.01)
+        end
+    end
+end)
+
+task.spawn(function()
+    while true do
+        task.wait(0.05)
+        if _G.AutoMini or _G.AutoFish then
+            K(Enum.KeyCode.W, 0.02)
+            K(Enum.KeyCode.A, 0.05)
+            K(Enum.KeyCode.D, 0.07)
+        end
+    end
+end)
+
+local function CheckFish()
+    local pg = P:FindFirstChild("PlayerGui")
+    if pg then
+        for _, g in pairs(pg:GetDescendants()) do
+            if (g:IsA("TextLabel") or g:IsA("TextButton")) then
+                if string.find(string.lower(tostring(g.Text or "")), "fish caught") then return true end
+            end
+        end
+    end
+    return false
+end
+
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if _G.AutoFish then
+            Status.Text = "● Thả cần..."
+            Click(0.5 + math.random() * 0.3)
+            rndDelay(3.5, 1)
+            Status.Text = "● Chờ cá..."
+            local startT = tick()
+            local caught = false
+            while _G.AutoFish and (tick() - startT < 20) do
+                if CheckFish() then caught = true break end
+                task.wait(0.3 + math.random() * 0.3)
+            end
+            if caught then
+                local currentFish = getFish()
+                updateFishHUD()
+                Status.Text = "● Đã câu! Kho: " .. currentFish
+                Status.TextColor3 = C.grn
+                task.spawn(function() showToast("🐟 +1 cá", C.cyan) end)
+                rndDelay(1, 0.3)
+            end
+        else
+            task.wait(0.2)
+        end
+    end
+end)
+
+-- ================= SỰ KIỆN NÚT BẤM =================
+BtnAuto.MouseButton1Click:Connect(function()
+    _G.AutoFish = not _G.AutoFish
+    if _G.AutoFish then
+        BtnAuto.Text = "🎣 AUTO CÂU: ON"; BtnAuto.TextColor3 = C.red
+        _G.AutoSkill = true; _G.AutoMini = true
+        BtnSkill.Text = "⚔️ SKILL: ON"; BtnSkill.TextColor3 = C.red
+        BtnMini.Text = "🎮 MINI: ON"; BtnMini.TextColor3 = C.red
+        if not _G.ForceUnlock then
+            SaveAnchor()
+            BtnLock.Text = "🔒 KHÓA: ON"; BtnLock.TextColor3 = C.red
+        end
+    else
+        BtnAuto.Text = "🎣 AUTO CÂU: OFF"; BtnAuto.TextColor3 = C.grn
+        _G.AutoSkill = false; _G.AutoMini = false
+        BtnSkill.Text = "⚔️ SKILL: OFF"; BtnSkill.TextColor3 = C.grn
+        BtnMini.Text = "🎮 MINI: OFF"; BtnMini.TextColor3 = C.grn
+    end
+end)
+
+BtnSkill.MouseButton1Click:Connect(function()
+    _G.AutoSkill = not _G.AutoSkill
+    BtnSkill.Text = _G.AutoSkill and "⚔️ SKILL: ON" or "⚔️ SKILL: OFF"
+    BtnSkill.TextColor3 = _G.AutoSkill and C.red or C.grn
+end)
+
+BtnMini.MouseButton1Click:Connect(function()
+    _G.AutoMini = not _G.AutoMini
+    BtnMini.Text = _G.AutoMini and "🎮 MINI: ON" or "🎮 MINI: OFF"
+    BtnMini.TextColor3 = _G.AutoMini and C.red or C.grn
+end)
+
+BtnLock.MouseButton1Click:Connect(function()
+    if _G.LockPos then
+        _G.LockPos = false; _G.AnchorPos = nil
+        BtnLock.Text = "🔒 KHÓA: OFF"; BtnLock.TextColor3 = C.grn
+    else
+        SaveAnchor()
+        BtnLock.Text = "🔒 KHÓA: ON"; BtnLock.TextColor3 = C.red
+    end
+end)
+
+BtnUnlock.MouseButton1Click:Connect(function()
+    _G.LockPos = false; _G.AnchorPos = nil; _G.ForceUnlock = true
+    BtnLock.Text = "🔒 KHÓA: OFF"; BtnLock.TextColor3 = C.grn
+    task.wait(0.5); _G.ForceUnlock = false
+end)
+
+-- Chuyển tab
+local function SwitchTab(tab)
+    FarmFrame.Visible = (tab == "farm")
+    SellFrame.Visible = (tab == "sell")
+    TeleFrame.Visible = (tab == "tele")
+    MusicFrame.Visible = (tab == "music")
+
+    BtnTabFarm.BackgroundColor3 = Color3.fromRGB(70, 75, 100); BtnTabFarm.TextColor3 = C.dim
+    BtnTabSell.BackgroundColor3 = Color3.fromRGB(70, 75, 100); BtnTabSell.TextColor3 = C.dim
+    BtnTabTele.BackgroundColor3 = Color3.fromRGB(70, 75, 100); BtnTabTele.TextColor3 = C.dim
+    BtnTabMusic.BackgroundColor3 = Color3.fromRGB(70, 75, 100); BtnTabMusic.TextColor3 = C.dim
+
+    if tab == "farm" then BtnTabFarm.BackgroundColor3 = Color3.fromRGB(35, 55, 45); BtnTabFarm.TextColor3 = C.grn
+    elseif tab == "sell" then BtnTabSell.BackgroundColor3 = Color3.fromRGB(50, 45, 30); BtnTabSell.TextColor3 = C.gold
+    elseif tab == "tele" then BtnTabTele.BackgroundColor3 = Color3.fromRGB(30, 40, 55); BtnTabTele.TextColor3 = C.cyan
+    elseif tab == "music" then BtnTabMusic.BackgroundColor3 = Color3.fromRGB(55, 35, 55); BtnTabMusic.TextColor3 = C.purple end
+end
+
+BtnTabFarm.MouseButton1Click:Connect(function() SwitchTab("farm") end)
+BtnTabSell.MouseButton1Click:Connect(function() SwitchTab("sell") end)
+BtnTabTele.MouseButton1Click:Connect(function() SwitchTab("tele") end)
+BtnTabMusic.MouseButton1Click:Connect(function() SwitchTab("music") end)
+
+Close.MouseButton1Click:Connect(function() Main.Visible = false; ToggleBtn.Visible = true end)
+ToggleBtn.MouseButton1Click:Connect(function() Main.Visible = true; ToggleBtn.Visible = false end)
+
+Main.Visible = true
+SwitchTab("farm")
+updateFishHUD()
+showToast("⚡ DatBeo Script đã tích hợp thành công!", C.gold)
